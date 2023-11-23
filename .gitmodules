@@ -1,0 +1,4 @@
+[submodule "muon_frost_py"]
+	path = muon_frost_py
+	url = https://github.com/SAYaghoubnejad/muon-frost-py.git
+	branch = library
