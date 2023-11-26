@@ -56,7 +56,18 @@ def remove_user(username):
         else:
             print(f"User with username '{username}' not found.")
 
-
+def alter_user(username, new_password=None, new_user_type=None):
+    with app.app_context():
+        user_to_alter = User.query.filter_by(username=username).first()
+        if user_to_alter:
+            if new_password:
+                user_to_alter.password = new_password
+            if new_user_type:
+                user_to_alter.user_type = new_user_type
+            db.session.commit()
+            print(f"User with username '{username}' has been altered.")
+        else:
+            print(f"User with username '{username}' not found.")
 
 class LoginForm:
     def __init__(self, username, password):
@@ -90,16 +101,6 @@ class SignParams(Resource):
         else:
             return jsonify({'message': f'You don\'t have the right access to deploy an app.'}), 400
 
-class AlterUser(Resource):
-    @login_required
-    def get(self):
-        if current_user.user_type in 'admin':
-            data = request.get_json()
-            form = LoginForm(username=data.get('username'), password=data.get('password'))
-            user = User.query.filter_by(username=form.username, password=form.password).first()
-            return jsonify({'message': f'Params signed successfully'}), 200
-        else:
-            return jsonify({'message': f'You don\'t have the right access to deploy an app.'}), 400
     
 class LogoutResource(Resource):
     @login_required
