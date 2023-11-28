@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_restful import Api, Resource
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
+
 import secrets
 import os
 import logging
@@ -13,9 +14,9 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] =\
         'sqlite:///' + os.path.join(basedir, 'users.db')
-
 app.config['SECRET_KEY'] = secrets.token_bytes(32)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
 
 login_manager = LoginManager(app)
@@ -93,7 +94,7 @@ class AppDeployment(Resource):
         else:
             return jsonify({'message': f'You don\'t have the right access to deploy an app.'}), 400
 
-class SignParams(Resource):
+class RequestSignature(Resource):
     @login_required
     def get(self):
         if current_user.user_type in ['deployer', 'admin', 'regular']:
