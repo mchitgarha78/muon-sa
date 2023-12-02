@@ -1,7 +1,7 @@
 from typing import Dict, List, Type
-from muon_frost_py.abstract.node_penalty import NodePenalty
+from muon_frost_py.abstract.node_evaluator import Evaluator, Penalty
 from muon_frost_py.abstract.data_manager import DataManager
-from muon_frost_py.abstract.response_validator import ResponseValidator
+from muon_frost_py.abstract.node_evaluator import NodeEvaluator
 
 from gateway_config import PENALTY_LIST, REMOVE_THRESHOLD
 from muon_frost_py.common.TSS.tss import TSS
@@ -13,7 +13,7 @@ import json
 import numpy as np
 
 
-class Penalty(NodePenalty):
+class NodePenalty(Penalty):
     def __init__(self, id: str) -> None:
         self.id = id
         self.__time = 0
@@ -27,7 +27,9 @@ class Penalty(NodePenalty):
         current_time = int(time.time())
         return self.__weight * np.exp(self.__time - current_time)
 
-class GatewayResponseValidator(ResponseValidator):
+
+
+class NodeEvaluator(Evaluator):
     def __init__(self, data_manager: DataManager, penalty_class_type: NodePenalty) -> None:
         super.__init__(data_manager, penalty_class_type)
         
