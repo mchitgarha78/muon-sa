@@ -1,23 +1,38 @@
 from muon_frost_py.abstract.data_manager import DataManager
 from sqlalchemy import create_engine, Column, String, MetaData, Table
 from sqlalchemy import insert, select, update, delete
-
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.exc import OperationalError
 import os
 import json
+import time
 
-class GatewayDataManager(DataManager):
-    def __init__(self, max_retries = 3) -> None:
+class SADataManager(DataManager):
+    def __init__(self, max_retries=3) -> None:
         super().__init__()
         basedir = os.path.abspath(os.path.dirname(__file__))
-        self.__engine = create_engine('sqlite:///' + os.path.join(basedir, 'gateway.db'), echo=True)
+        self.__engine = create_engine('sqlite:///' + os.path.join(basedir, 'sa.db'))
+        self.__session_factory = sessionmaker(bind=self.__engine)
+        self.__Session = scoped_session(self.__session_factory)
         self.__table_structures = {}
         self.__max_retries = max_retries
-    
+
     def execute_command(self, exec_obj):
-        connection = self.__engine.connect()
-        connection.execute(exec_obj)
-        connection.commit()
-        connection.close()
+        retries = 0
+        while retries < self.__max_retries:
+            try:
+                session = self.__Session()
+                session.execute(exec_obj)
+                session.commit()
+                break
+            except OperationalError as e:
+                session.rollback()
+                retries += 1
+                time.sleep(0.1)  # A short delay between retries
+            finally:
+                session.close()
+        if retries == self.__max_retries:
+            raise Exception(f"Max retries reached for operation {exec_obj}")
 
     def setup_table(self, table_name: str) -> None:
         metadata = MetaData()
@@ -28,9 +43,18 @@ class GatewayDataManager(DataManager):
         self.__table_structures[table_name] = table
     
     def save_data(self, table_name: str, key, value) -> None:
+        table = self.__table_structures.get(table_name)
+        data = self.get_data(table_name, key)
+        exec_obj = None
+        if data is not None:
+            exec_obj = update(table).values(value = value)\
+                                        .where(table.c.key == key)
+        else:
+            self.setup_table(table_name)
+            exec_obj = insert(self.__table_structures[table_name])\
+                .values(key = key, value = value)
         
-        insert_obj = insert(self.__table_structures[table_name]).values(key = key, value = value)
-        self.execute_command(insert_obj)
+        self.execute_command(exec_obj)
         # TODO: Should the connection be closed?
     
     def add_data(self, table_name: str, key, value) -> None:

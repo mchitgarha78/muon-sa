@@ -3,7 +3,7 @@ from muon_frost_py.abstract.dns import DNS
 import json
 
 
-class GatewayDNS(DNS):
+class SADns(DNS):
     """
     A DNS-like class for managing and resolving peer network information.
     It maintains a lookup table mapping peer IDs to their respective network details.
@@ -16,17 +16,15 @@ class GatewayDNS(DNS):
         """
         Initializes the DNS with a pre-defined lookup table containing peer IDs and their details.
         """
-        self.gateways = {
-             # Gateway
+        self.signature_aggregators = {
+             # Signature aggregator
             "16Uiu2HAmGVUb3nZ3yaKNpt5kH7KZccKrPaHmG1qTB48QvLdr7igH": {
                 "ip": "127.0.0.1",
                 "port": "7000",
                 'public_key': '080212210338fede176f44704dc4fdcdace7c35108a126d8b77ad33ee7af09c0e18d56376a'
             }
         }
-        self.deployers = {
-
-        }
+        self.deployers = []
         self.nodes = {
             '16Uiu2HAkv3kvbv1LjsxQ62kXE8mmY16R97svaMFhZkrkXaXSBSTq': {
                 'ip': '127.0.0.1',
@@ -429,8 +427,8 @@ class GatewayDNS(DNS):
                 'port': '5049',
                 'public_key': '0802122103ff9bec7a9cc8b27a069784daa0e15a5f93a957567e3a562f85653f58bf7712a6'}}
         
-    def lookup_gateway(self, peer_id:str):
-        return self.gateways.get(peer_id, None)
+    def lookup_sa(self, peer_id:str):
+        return self.signature_aggregators.get(peer_id, None)
 
     def lookup_node(self, peer_id: str):
         """
@@ -444,11 +442,11 @@ class GatewayDNS(DNS):
         """
         return self.nodes.get(peer_id, None)
 
-    def lookup_deployer(self, peer_id: str):
-        return self.deployers.get(peer_id, None)
-
-
     def get_all_nodes(self, n:int = None) -> List[str]:
         if n is not None:
-            return list(self.lookup_node.keys())[:n]
-        return list(self.lookup_node.keys())
+            return list(self.nodes.keys())[:n]
+        return list(self.nodes.keys())
+
+    def is_deployer(self, peer_id: str) -> [bool, None]:
+        return peer_id in self.deployers
+    

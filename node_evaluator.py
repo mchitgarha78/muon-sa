@@ -1,9 +1,8 @@
 from typing import Dict, List, Type
-from muon_frost_py.abstract.node_evaluator import Evaluator, Penalty
+from muon_frost_py.abstract.sa.node_evaluator import Evaluator, Penalty
 from muon_frost_py.abstract.data_manager import DataManager
-from muon_frost_py.abstract.node_evaluator import NodeEvaluator
 
-from gateway_config import PENALTY_LIST, REMOVE_THRESHOLD
+from sa_config import PENALTY_LIST, REMOVE_THRESHOLD
 from muon_frost_py.common.TSS.tss import TSS
 
 from web3 import Web3
@@ -31,7 +30,7 @@ class NodePenalty(Penalty):
 
 class NodeEvaluator(Evaluator):
     def __init__(self, data_manager: DataManager, penalty_class_type: NodePenalty) -> None:
-        super.__init__(data_manager, penalty_class_type)
+        super().__init__(data_manager, penalty_class_type)
         
         self.penalties: Dict[str, self.penalty_class_type] = {}
 
@@ -55,8 +54,7 @@ class NodeEvaluator(Evaluator):
         self.data_manager.add_data(table_name, key,res)
         return score_party[:n]
 
-    def validate_responses(self, table_name: str, key: str, responses: Dict[str, Dict], 
-                           round1_response: Dict = None, round2_response: Dict = None) -> bool:
+    def evaluate_responses(self, table_name: str, key: str, responses: Dict[str, Dict]) -> bool:
         is_complete = True
         guilty_peer_ids = {}
         for peer_id, data in responses.items():
@@ -64,12 +62,9 @@ class NodeEvaluator(Evaluator):
             guilty_id = None
             if data_status != 'SUCCESSFUL':
                 is_complete = False
-
-            if data_status == 'COMPLAINT':
-                guilty_id = self.exclude_complaint(data['data'], round1_response, round2_response) 
-                
+    
             
-            if data_status == 'TIMEOUT':
+            if data_status in ['TIMEOUT', 'MALICIOUS']:
                 guilty_id = peer_id
             
             if guilty_id is not None:
@@ -82,11 +77,12 @@ class NodeEvaluator(Evaluator):
         res = {
             'guilty_peer_ids' : guilty_peer_ids,
             'responses' : responses,
-            'round1_response' : round1_response,
-            'round2_response' : round2_response
         }
         self.data_manager.add_data(table_name, key, res)        
         return is_complete
+
+    def evaluate_dkg(self, table_name: str, key: str, responses: Dict[str, Dict], round1_response: Dict = None, round2_response: Dict = None):
+        pass
 
     
     def exclude_complaint(self, complaint: Dict, public_keys: Dict, round1_response: Dict, round2_response: Dict):
