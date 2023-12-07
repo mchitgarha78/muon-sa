@@ -27,8 +27,10 @@ class SAProcess:
                 self.__nonces.setdefault(peer_id, [])
                 nonces = await self.sa.request_nonce(peer_id, min_number_of_nonces * 10)
                 self.node_evaluator.evaluate_responses(nonces)
-                self.__nonces[peer_id] +=  nonces[peer_id]['nonces']
+                if nonces[peer_id]['status'] == 'SUCCESSFUL':
+                    self.__nonces[peer_id] += nonces[peer_id]['nonces']
             await trio.sleep(sleep_time)
+
     
     async def maintain_dkg_list(self):
         while True:
@@ -44,9 +46,5 @@ class SAProcess:
         async with trio.open_nursery() as nursery:
             # Start SA and maintain nonce values for each peer
             nursery.start_soon(self.sa.run)
-
             nursery.start_soon(self.maintain_nonces)
-            
             nursery.start_soon(self.maintain_dkg_list)
-
-
