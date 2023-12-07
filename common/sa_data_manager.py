@@ -1,4 +1,3 @@
-from muon_frost_py.abstract.data_manager import DataManager
 from sqlalchemy import create_engine, Column, String, MetaData, Table
 from sqlalchemy import insert, select, update, delete
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -7,11 +6,9 @@ import os
 import json
 import time
 
-class SADataManager(DataManager):
+class SADataManager:
     def __init__(self, max_retries=3) -> None:
-        super().__init__()
-        basedir = os.path.abspath(os.path.dirname(__file__))
-        self.__engine = create_engine('sqlite:///' + os.path.join(basedir, 'sa.db'))
+        self.__engine = create_engine('sqlite:///sa.db')
         self.__session_factory = sessionmaker(bind=self.__engine)
         self.__Session = scoped_session(self.__session_factory)
         self.__table_structures = {}

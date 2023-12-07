@@ -21,10 +21,10 @@ def request_sign():
             return jsonify({'error': 'Invalid request format'}), 400
         
         # TODO: handle types of potentially errors.
-        app.config['SA'].request_signature(dkg_key: Dict, sign_party_num: int, 
-                                app_request_id: str, app_method: str, 
-                                app_params: Dict, app_sign_params: Dict, 
-                                app_hash: str, app_result: Dict)
+        # app.config['SA'].request_signature(dkg_key: Dict, sign_party_num: int, 
+        #                         app_request_id: str, app_method: str, 
+        #                         app_params: Dict, app_sign_params: Dict, 
+        #                         app_hash: str, app_result: Dict)
         
         response_data = {
             'app': app_name,
