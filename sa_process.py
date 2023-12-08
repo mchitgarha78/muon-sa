@@ -16,9 +16,9 @@ class SAProcess:
         self.registry_url = registry_url
         self.sa = SA(SA_DATA, PRIVATE, 
                                self.node_info, 0, 50)
-        self.__nonces = {}
+        self.__nonces: Dict[str, list[Dict]] = {} 
         self.node_evaluator = NodeEvaluator()
-        self.dkg_list = {}
+        self.dkg_list: Dict = {}
 
     async def maintain_nonces(self, min_number_of_nonces: int = 10, sleep_time: int = 2):
         while True:
@@ -41,6 +41,28 @@ class SAProcess:
             for id, data in new_data.items():
                 self.dkg_list[id] = data
             await trio.sleep(5 * 60) # wait for 5 mins
+    
+    async def get_commitments(self, party: List[str], timeout: int = 5) -> Dict:
+        commitments_dict = {}
+        peer_ids_with_timeout = {}
+        for peer_id in party:
+            with trio.move_on_after(timeout) as cancel_scope:
+                while not self.__nonces.get(peer_id):
+                    await trio.sleep(0.1)
+                
+                commitment = self.__nonces[peer_id].pop()
+                commitments_dict[peer_id] = commitment
+        
+            if cancel_scope.cancelled_caught:
+                timeout_response = {
+                    "status": "TIMEOUT",
+                    "error": "Communication timed out",
+                }
+                peer_ids_with_timeout[peer_id] = timeout_response
+        if len(peer_ids_with_timeout) > 0:
+            self.node_evaluator.evaluate_responses(peer_ids_with_timeout)
+            logging.warning(f'get_commitments => Timeout error occurred. peer ids with timeout: {peer_ids_with_timeout}')
+        return commitments_dict
 
     async def run(self) -> None:
         async with trio.open_nursery() as nursery:

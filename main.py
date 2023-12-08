@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
 
     # TODO: Use WSGI or uvicorn
-    app.config['SA'] = sa_process.sa
+    app.config['SA'] = sa_process
     
     flask_process = Process(target = lambda: app.run(debug = True, use_reloader = False))
     sa_trio_process = Process(target = lambda: trio.run(sa_process.run))
