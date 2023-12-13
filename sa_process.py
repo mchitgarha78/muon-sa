@@ -1,7 +1,7 @@
 from muon_frost_py.sa.sa import SA
-from sa_config import PRIVATE, SA_DATA
+from sa_config import PRIVATE, SA_INFO
 from node_evaluator import NodeEvaluator
-from common.sa_node_info import SANodeInfo
+from common.node_info import NodeInfo
 from typing import List, Dict
 from muon_frost_py.common.utils import Utils
 import sys
@@ -10,11 +10,11 @@ import trio
 import logging
 
 class SAProcess:
-    def __init__(self, sa_id: str, total_node_number: int, registry_url: str) -> None:
-        self.node_info = SANodeInfo()
+    def __init__(self, total_node_number: int, registry_url: str) -> None:
+        self.node_info = NodeInfo()
         self.total_node_number = total_node_number
         self.registry_url = registry_url
-        self.sa = SA(SA_DATA, PRIVATE, 
+        self.sa = SA(SA_INFO, PRIVATE, 
                                self.node_info, 0, 50)
         self.__nonces: Dict[str, list[Dict]] = {} 
         self.node_evaluator = NodeEvaluator()
@@ -35,7 +35,7 @@ class SAProcess:
     async def maintain_dkg_list(self):
         while True:
             new_data: Dict = Utils.get_request(self.registry_url)
-            if not new_data:
+            if new_data is None:
                 await trio.sleep(0.5)
                 continue
             for id, data in new_data.items():
@@ -66,7 +66,7 @@ class SAProcess:
 
     async def run(self) -> None:
         async with trio.open_nursery() as nursery:
-            # Start SA and maintain nonce values for each peer
+
             nursery.start_soon(self.sa.run)
             nursery.start_soon(self.maintain_nonces)
             nursery.start_soon(self.maintain_dkg_list)

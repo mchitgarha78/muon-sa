@@ -1,13 +1,8 @@
 from flask import Flask, request, jsonify
-from common.sa_data_manager import SADataManager
 from sa_process import SAProcess
 import trio
 import logging
 app = Flask(__name__)
-
-data_manager = SADataManager()
-# Set a secret key for the application
-app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 
 @app.route('/v1/', methods=['POST'])
@@ -25,7 +20,7 @@ def request_sign():
         
         dkg_ids = [key for key, value in sa_process.dkg_list.items() if value['app_name'] == app_name]
         if len(dkg_ids) == 0:
-            return jsonify({'error': 'App not found on the node.'}), 400
+            return jsonify({'error': 'App not found on the apps list.'}), 400
         dkg_id = dkg_ids[0]
         commitments_dict = trio.run(
                            lambda: sa_process.get_commitments(sa_process.dkg_list[dkg_id]['party'])
@@ -34,7 +29,7 @@ def request_sign():
                         lambda: sa_process.sa.request_signature(sa_process.dkg_list[dkg_id]['dkg_key'], commitments_dict,
                         data)
         )
-        
+        sa_process.node_evaluator.evaluate_responses(response_data)
         return jsonify(response_data), 200
     except Exception as e:
         logging.error(f'Flask request_sign => Exception occurred: {type(e).__name__}: {e}')

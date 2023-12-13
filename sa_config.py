@@ -1,7 +1,7 @@
-SA_DATA = {
-                "ip": "127.0.0.1",
-                "port": "7000",
-                'public_key': '080212210338fede176f44704dc4fdcdace7c35108a126d8b77ad33ee7af09c0e18d56376a'
+SA_INFO = {
+    "ip": "0.0.0.0",
+    "port": "7000",
+    'public_key': '080212210338fede176f44704dc4fdcdace7c35108a126d8b77ad33ee7af09c0e18d56376a'
 }
 SA_PEER_ID = '16Uiu2HAmGVUb3nZ3yaKNpt5kH7KZccKrPaHmG1qTB48QvLdr7igH'
 

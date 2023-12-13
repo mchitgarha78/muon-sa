@@ -1,8 +1,7 @@
 from typing import Dict, List, Type
-from muon_frost_py.abstract.node.data_manager import DataManager
 
 from sa_config import PENALTY_LIST, REMOVE_THRESHOLD
-from muon_frost_py.common.TSS.tss import TSS
+from muon_frost_py.common.pyfrost.tss import TSS
 
 from web3 import Web3
 

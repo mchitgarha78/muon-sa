@@ -1,9 +1,8 @@
 from typing import List
-from muon_frost_py.abstract.node.node_info import NodeInfo
 import json
 
 
-class SANodeInfo(NodeInfo):
+class NodeInfo:
     def __init__(self):
         self.registries = []
         self.nodes = {
@@ -409,15 +408,6 @@ class SANodeInfo(NodeInfo):
                 'public_key': '0802122103ff9bec7a9cc8b27a069784daa0e15a5f93a957567e3a562f85653f58bf7712a6'}}
         
     def lookup_node(self, peer_id: str):
-        """
-        Resolves the network details for a given peer ID.
-
-        Parameters:
-        peer_id (str): The peer ID whose details are to be resolved.
-
-        Returns:
-        A dictionary containing the network details (IP, port, public key) of the specified peer ID.
-        """
         return self.nodes.get(peer_id, None)
 
     def get_all_nodes(self, n:int = None) -> List[str]:
@@ -425,6 +415,4 @@ class SANodeInfo(NodeInfo):
             return list(self.nodes.keys())[:n]
         return list(self.nodes.keys())
 
-    def is_registry(self, peer_id: str) -> [bool, None]:
-        return peer_id in self.registries
     
