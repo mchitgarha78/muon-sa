@@ -1,12 +1,6 @@
-from typing import Dict, List, Type
-
-from sa_config import PENALTY_LIST, REMOVE_THRESHOLD
-from muon_frost_py.common.pyfrost.tss import TSS
-
-from web3 import Web3
-
+from typing import Dict, List
+from config import PENALTY_LIST, REMOVE_THRESHOLD
 import time
-import json
 import numpy as np
 
 
@@ -25,12 +19,11 @@ class NodePenalty:
         return self.__weight * np.exp(self.__time - current_time)
 
 
-
 class NodeEvaluator:
     def __init__(self) -> None:
         self.penalties: Dict[str, NodePenalty] = {}
 
-    def get_new_party(self, old_party: List[str], n: int=None) -> List[str]:       
+    def get_new_party(self, old_party: List[str], n: int = None) -> List[str]:
         below_threshold = 0
         for peer_id in old_party:
             if peer_id not in self.penalties.keys():
@@ -38,14 +31,13 @@ class NodeEvaluator:
             if self.penalties[peer_id].get_score() < REMOVE_THRESHOLD:
                 below_threshold += 1
 
-        
-        score_party = sorted(old_party, 
-                       key=lambda x: self.penalties[x].get_score(), 
-                       reverse=True)
-        
+        score_party = sorted(old_party,
+                             key=lambda x: self.penalties[x].get_score(),
+                             reverse=True)
+
         if n is None or n >= len(old_party) - below_threshold:
             n = len(old_party) - below_threshold
-        
+
         res = score_party[:n]
         return score_party[:n]
 
@@ -57,15 +49,16 @@ class NodeEvaluator:
             guilty_id = None
             if data_status != 'SUCCESSFUL':
                 is_complete = False
-    
+
             if data_status in ['TIMEOUT', 'MALICIOUS']:
                 guilty_id = peer_id
-            
+
             if guilty_id is not None:
-                
+
                 if not self.penalties.get(guilty_id):
                     self.penalties[guilty_id] = NodePenalty(peer_id)
                 self.penalties[guilty_id].add_penalty(data_status)
-                guilty_peer_ids[guilty_id] = (data_status, self.penalties[guilty_id].get_score())
+                guilty_peer_ids[guilty_id] = (
+                    data_status, self.penalties[guilty_id].get_score())
 
         return is_complete
