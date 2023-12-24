@@ -7,3 +7,5 @@ PENALTY_LIST = {
 }
 
 REMOVE_THRESHOLD = -50
+
+APPS_LIST_URL = 'http://127.0.0.1:8050/v1'

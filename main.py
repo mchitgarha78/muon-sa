@@ -6,6 +6,7 @@ from libp2p.host.host_interface import IHost
 from node_evaluator import NodeEvaluator
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from config import APPS_LIST_URL
 from libp2p.crypto.secp256k1 import create_new_key_pair
 from libp2p.peer.id import ID as PeerID
 import logging
@@ -113,7 +114,6 @@ if __name__ == '__main__':
     console_handler.setFormatter(log_formatter)
     root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.DEBUG)
-    registry_url = sys.argv[2]
     node_info = NodeInfo()
     load_dotenv()
     secret = bytes.fromhex(os.getenv('PRIVATE_KEY'))
@@ -126,7 +126,7 @@ if __name__ == '__main__':
         'ip': str(os.getenv('HOST')),
         'port': str(os.getenv('PORT'))
     }
-    muon_sa = MuonSA(registry_url,
+    muon_sa = MuonSA(APPS_LIST_URL,
                      address, os.getenv('PRIVATE_KEY'), node_info)
 
     # TODO: Use WSGI or uvicorn
