@@ -22,15 +22,17 @@ class MuonSA(SA):
     async def maintain_nonces(self, min_number_of_nonces: int = 10, sleep_time: int = 2):
         while True:
             peer_ids = self.node_info.get_all_nodes(self.total_node_number)
+
+            # TODO: Random selection
             selected_nodes = {}
             for node_id, peer_ids in peer_ids.items():
                 selected_nodes[node_id] = peer_ids[0]
-            # TODO: handle Exception for request nonces
-            nonces = await self.request_nonces(selected_nodes, min_number_of_nonces * 10)
-            self.node_evaluator.evaluate_responses(nonces)
-            for peer_id in peer_ids:
-                if nonces[peer_id]['status'] == 'SUCCESSFUL':
-                    self.nonces[peer_id] += nonces[peer_id]['nonces']
+            
+            nonces_response = await self.request_nonces(selected_nodes, min_number_of_nonces)
+            self.node_evaluator.evaluate_responses(nonces_response)
+            for node_id, peer_id in selected_nodes.items():
+                if nonces_response[peer_id]['status'] == 'SUCCESSFUL':
+                    self.nonces[peer_id] += nonces_response[peer_id]['nonces']
             await trio.sleep(sleep_time)
 
     async def maintain_dkg_list(self):
@@ -46,28 +48,28 @@ class MuonSA(SA):
                 await trio.sleep(0.5)
                 continue
 
-    async def get_commitments(self, party: List[str], timeout: int = 5) -> Dict:
-        commitments_dict = {}
-        peer_ids_with_timeout = {}
-        for peer_id in party:
-            with trio.move_on_after(timeout) as cancel_scope:
-                while not self.nonces.get(peer_id):
-                    await trio.sleep(0.1)
+    # async def get_commitments(self, party: List[str], timeout: int = 5) -> Dict:
+    #     commitments_dict = {}
+    #     peer_ids_with_timeout = {}
+    #     for peer_id in party:
+    #         with trio.move_on_after(timeout) as cancel_scope:
+    #             while not self.nonces.get(peer_id):
+    #                 await trio.sleep(0.1)
 
-                commitment = self.nonces[peer_id].pop()
-                commitments_dict[peer_id] = commitment
+    #             commitment = self.nonces[peer_id].pop()
+    #             commitments_dict[peer_id] = commitment
 
-            if cancel_scope.cancelled_caught:
-                timeout_response = {
-                    "status": "TIMEOUT",
-                    "error": "Communication timed out",
-                }
-                peer_ids_with_timeout[peer_id] = timeout_response
-        if len(peer_ids_with_timeout) > 0:
-            self.node_evaluator.evaluate_responses(peer_ids_with_timeout)
-            logging.warning(
-                f'get_commitments => Timeout error occurred. peer ids with timeout: {peer_ids_with_timeout}')
-        return commitments_dict
+    #         if cancel_scope.cancelled_caught:
+    #             timeout_response = {
+    #                 "status": "TIMEOUT",
+    #                 "error": "Communication timed out",
+    #             }
+    #             peer_ids_with_timeout[peer_id] = timeout_response
+    #     if len(peer_ids_with_timeout) > 0:
+    #         self.node_evaluator.evaluate_responses(peer_ids_with_timeout)
+    #         logging.warning(
+    #             f'get_commitments => Timeout error occurred. peer ids with timeout: {peer_ids_with_timeout}')
+    #     return commitments_dict
 
     async def run_process(self) -> None:
         async with trio.open_nursery() as nursery:
