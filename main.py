@@ -82,7 +82,7 @@ class MuonSA(SA):
 
                 for id, data in new_data.items():
                     self.dkg_list[id] = data
-                await trio.sleep(5 * 60)  # wait for 5 mins
+                await trio.sleep(5)  # wait for 5 mins
             except Exception as e:
                 logging.error(
                     f'Muon SA => Exception occurred: {type(e).__name__}: {e}')
@@ -123,7 +123,7 @@ if __name__ == '__main__':
         f'Public Key: {key_pair.public_key.serialize().hex()}, PeerId: {peer_id.to_base58()}')
     address = {
         'public_key': key_pair.public_key.serialize().hex(),
-        'ip': '0.0.0.0',
+        'ip': str(os.getenv('HOST')),
         'port': str(os.getenv('PORT'))
     }
     muon_sa = MuonSA(registry_url,
