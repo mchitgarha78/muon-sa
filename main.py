@@ -1,12 +1,13 @@
 import trio
 from multiprocessing import Process
-from config import PRIVATE, SA_INFO
 from abstract.node_info import NodeInfo
 from pyfrost.network.sa import SA
 from libp2p.host.host_interface import IHost
 from node_evaluator import NodeEvaluator
 from flask import Flask, request, jsonify
-
+from dotenv import load_dotenv
+from libp2p.crypto.secp256k1 import create_new_key_pair
+from libp2p.peer.id import ID as PeerID
 import logging
 import os
 import sys
@@ -48,11 +49,11 @@ def request_sign():
 
 
 class MuonSA(SA):
-    def __init__(self, total_node_number: int, registry_url: str, address: Dict[str, str], secret: str, node_info: NodeInfo,
+    def __init__(self, registry_url: str, address: Dict[str, str], secret: str, node_info: NodeInfo,
                  max_workers: int = 0, default_timeout: int = 50, host: IHost = None) -> None:
+        
         super().__init__(address, secret, node_info,
                          max_workers, default_timeout, host)
-        self.total_node_number = total_node_number
         self.registry_url = registry_url
         self.nonces: Dict[str, list[Dict]] = {}
         self.node_evaluator = NodeEvaluator()
@@ -60,7 +61,7 @@ class MuonSA(SA):
 
     async def maintain_nonces(self, min_number_of_nonces: int = 10, sleep_time: int = 2):
         while True:
-            peer_ids = self.node_info.get_all_nodes(self.total_node_number)
+            peer_ids = self.node_info.get_all_nodes()
 
             # TODO: Random selection
             selected_nodes = {}
@@ -112,11 +113,21 @@ if __name__ == '__main__':
     console_handler.setFormatter(log_formatter)
     root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.DEBUG)
-    total_node_number = int(sys.argv[1])
     registry_url = sys.argv[2]
     node_info = NodeInfo()
-    muon_sa = MuonSA(total_node_number, registry_url,
-                     SA_INFO, PRIVATE, node_info)
+    load_dotenv()
+    secret = bytes.fromhex(os.getenv('PRIVATE_KEY'))
+    key_pair = create_new_key_pair(secret)
+    peer_id: PeerID = PeerID.from_pubkey(key_pair.public_key)
+    print(
+        f'Public Key: {key_pair.public_key.serialize().hex()}, PeerId: {peer_id.to_base58()}')
+    address = {
+        'public_key': key_pair.public_key.serialize().hex(),
+        'ip': '0.0.0.0',
+        'port': str(os.getenv('PORT'))
+    }
+    muon_sa = MuonSA(registry_url,
+                     address, os.getenv('PRIVATE_KEY'), node_info)
 
     # TODO: Use WSGI or uvicorn
     app.config['SA'] = muon_sa
