@@ -52,7 +52,7 @@ def request_sign():
 class MuonSA(SA):
     def __init__(self, registry_url: str, address: Dict[str, str], secret: str, node_info: NodeInfo,
                  max_workers: int = 0, default_timeout: int = 50, host: IHost = None) -> None:
-        
+
         super().__init__(address, secret, node_info,
                          max_workers, default_timeout, host)
         self.registry_url = registry_url
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     # TODO: Use WSGI or uvicorn
     app.config['SA'] = muon_sa
     flask_process = Process(target=lambda: app.run(
-        debug=True, use_reloader=False))
+        debug=True, host=str(os.getenv('API_HOST')), port=str(os.getenv('API_PORT')), use_reloader=False))
     sa_process = Process(target=lambda: trio.run(muon_sa.run_process))
 
     flask_process.start()
