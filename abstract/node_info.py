@@ -5,7 +5,7 @@ import json
 
 class NodeInfo(BaseNodeInfo):
     def __init__(self):
-        with open('./abstracts/nodes.json', 'r') as reader:
+        with open('./abstract/nodes.json', 'r') as reader:
             self.nodes = json.loads(reader.read())
 
     def lookup_node(self, peer_id: str, node_id: str = None):

@@ -1,12 +1,98 @@
-from api import app
 import trio
 from multiprocessing import Process
-from muon_sa import MuonSA
 from config import PRIVATE, SA_INFO
 from abstract.node_info import NodeInfo
+from pyfrost.network.sa import SA
+from libp2p.host.host_interface import IHost
+from node_evaluator import NodeEvaluator
+from flask import Flask, request, jsonify
+
 import logging
 import os
 import sys
+from typing import Dict
+import requests
+
+
+app = Flask(__name__)
+
+
+@app.route('/v1/', methods=['POST'])
+def request_sign():
+    muon_sa: MuonSA = app.config['SA']
+    try:
+        data = request.get_json()
+        app_name = data.get('app')
+        method_name = data.get('method')
+        req_id = data.get('reqId')
+        params = data.get('data', {}).get('params')
+        result = data.get('data', {}).get('result')
+        if None in [app_name, method_name, req_id, params, result]:
+            return jsonify({'error': 'Invalid request format'}), 400
+
+        dkg_ids = [key for key, value in muon_sa.dkg_list.items()
+                   if value['app_name'] == app_name]
+        if len(dkg_ids) == 0:
+            return jsonify({'error': 'App not found on the apps list.'}), 400
+        dkg_id = dkg_ids[0]
+        response_data = trio.run(
+            lambda: muon_sa.request_signature(muon_sa.dkg_list[dkg_id]['dkg_key'], muon_sa.nonces,
+                                              data)
+        )
+        muon_sa.node_evaluator.evaluate_responses(response_data)
+        return jsonify(response_data), 200
+    except Exception as e:
+        logging.error(
+            f'Flask request_sign => Exception occurred: {type(e).__name__}: {e}')
+        return jsonify({'error': 'Internal server error.'}), 500
+
+
+class MuonSA(SA):
+    def __init__(self, total_node_number: int, registry_url: str, address: Dict[str, str], secret: str, node_info: NodeInfo,
+                 max_workers: int = 0, default_timeout: int = 50, host: IHost = None) -> None:
+        super().__init__(address, secret, node_info,
+                         max_workers, default_timeout, host)
+        self.total_node_number = total_node_number
+        self.registry_url = registry_url
+        self.nonces: Dict[str, list[Dict]] = {}
+        self.node_evaluator = NodeEvaluator()
+        self.dkg_list: Dict = {}
+
+    async def maintain_nonces(self, min_number_of_nonces: int = 10, sleep_time: int = 2):
+        while True:
+            peer_ids = self.node_info.get_all_nodes(self.total_node_number)
+
+            # TODO: Random selection
+            selected_nodes = {}
+            for node_id, peer_ids in peer_ids.items():
+                selected_nodes[node_id] = peer_ids[0]
+
+            nonces_response = await self.request_nonces(selected_nodes, min_number_of_nonces)
+            self.node_evaluator.evaluate_responses(nonces_response)
+            for node_id, peer_id in selected_nodes.items():
+                if nonces_response[peer_id]['status'] == 'SUCCESSFUL':
+                    self.nonces[peer_id] += nonces_response[peer_id]['nonces']
+            await trio.sleep(sleep_time)
+
+    async def maintain_dkg_list(self):
+        while True:
+            try:
+                new_data: Dict = requests.get(self.registry_url).json()
+
+                for id, data in new_data.items():
+                    self.dkg_list[id] = data
+                await trio.sleep(5 * 60)  # wait for 5 mins
+            except Exception as e:
+                logging.error(
+                    f'Muon SA => Exception occurred: {type(e).__name__}: {e}')
+                await trio.sleep(0.5)
+                continue
+
+    async def run_process(self) -> None:
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(self.run)
+            nursery.start_soon(self.maintain_nonces)
+            nursery.start_soon(self.maintain_dkg_list)
 
 
 if __name__ == '__main__':
@@ -27,7 +113,7 @@ if __name__ == '__main__':
     root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.DEBUG)
     total_node_number = int(sys.argv[1])
-    registry_url = ''
+    registry_url = sys.argv[2]
     node_info = NodeInfo()
     muon_sa = MuonSA(total_node_number, registry_url,
                      SA_INFO, PRIVATE, node_info)
