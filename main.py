@@ -2,8 +2,8 @@ from api import app
 import trio
 from multiprocessing import Process
 from muon_sa import MuonSA
-from config import SA_PEER_ID, PRIVATE, SA_INFO
-from common.node_info import NodeInfo
+from config import PRIVATE, SA_INFO
+from abstract.node_info import NodeInfo
 import logging
 import os
 import sys

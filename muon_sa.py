@@ -2,7 +2,7 @@ from pyfrost.network.sa import SA
 from libp2p.host.host_interface import IHost
 from config import PRIVATE, SA_INFO
 from node_evaluator import NodeEvaluator
-from common.node_info import NodeInfo
+from abstract.node_info import NodeInfo
 from typing import List, Dict
 import trio
 import logging
