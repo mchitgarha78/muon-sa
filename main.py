@@ -1,29 +1,28 @@
 import trio
-from multiprocessing import Process
+from quart_trio import QuartTrio
+from quart import request, jsonify
+import os
+import logging
+from dotenv import load_dotenv
 from abstract.node_info import NodeInfo
 from pyfrost.network.sa import SA
 from libp2p.host.host_interface import IHost
 from node_evaluator import NodeEvaluator
-from flask import Flask, request, jsonify
-from dotenv import load_dotenv
-from config import APPS_LIST_URL
 from libp2p.crypto.secp256k1 import create_new_key_pair
 from libp2p.peer.id import ID as PeerID
-import logging
-import os
-import sys
 from typing import Dict
+from config import APPS_LIST_URL
 import requests
 
 
-app = Flask(__name__)
+app = QuartTrio(__name__)
 
 
 @app.route('/v1/', methods=['POST'])
-def request_sign():
+async def request_sign():
     muon_sa: MuonSA = app.config['SA']
     try:
-        data = request.get_json()
+        data = await request.get_json()
         app_name = data.get('app')
         method_name = data.get('method')
         req_id = data.get('reqId')
@@ -31,17 +30,23 @@ def request_sign():
         result = data.get('data', {}).get('result')
         if None in [app_name, method_name, req_id, params, result]:
             return jsonify({'error': 'Invalid request format'}), 400
-
         dkg_ids = [key for key, value in muon_sa.dkg_list.items()
-                   if value['app_name'] == app_name]
+                if value['app_name'] == app_name]
         if len(dkg_ids) == 0:
             return jsonify({'error': 'App not found on the apps list.'}), 400
         dkg_id = dkg_ids[0]
-        response_data = trio.run(
-            lambda: muon_sa.request_signature(muon_sa.dkg_list[dkg_id]['dkg_key'], muon_sa.nonces,
-                                              data)
-        )
-        muon_sa.node_evaluator.evaluate_responses(response_data)
+        nonces_dict = {}
+
+        nonces_dict = {}
+        for node_id in muon_sa.dkg_list[dkg_id]['party'].keys():
+            nonces_dict[node_id] = muon_sa.nonces[node_id].pop()
+
+        dkg_key = muon_sa.dkg_list[dkg_id].copy()
+        dkg_key['dkg_id'] = dkg_id
+
+        response_data = await muon_sa.request_signature(dkg_key, nonces_dict,
+                                                        data, muon_sa.dkg_list[dkg_id]['party'])
+        # TODO: Add response output to request signature: muon_sa.node_evaluator.evaluate_responses(response_data)
         return jsonify(response_data), 200
     except Exception as e:
         logging.error(
@@ -60,20 +65,23 @@ class MuonSA(SA):
         self.node_evaluator = NodeEvaluator()
         self.dkg_list: Dict = {}
 
-    async def maintain_nonces(self, min_number_of_nonces: int = 10, sleep_time: int = 2):
+    async def maintain_nonces(self, min_number_of_nonces: int = 10, sleep_time: int = 10):
         while True:
             peer_ids = self.node_info.get_all_nodes()
 
             # TODO: Random selection
             selected_nodes = {}
             for node_id, peer_ids in peer_ids.items():
+                self.nonces.setdefault(node_id, [])
+                if len(self.nonces[node_id]) >= min_number_of_nonces:
+                    continue
                 selected_nodes[node_id] = peer_ids[0]
 
             nonces_response = await self.request_nonces(selected_nodes, min_number_of_nonces)
             self.node_evaluator.evaluate_responses(nonces_response)
             for node_id, peer_id in selected_nodes.items():
                 if nonces_response[peer_id]['status'] == 'SUCCESSFUL':
-                    self.nonces[peer_id] += nonces_response[peer_id]['nonces']
+                    self.nonces[node_id] += nonces_response[peer_id]['nonces']
             await trio.sleep(sleep_time)
 
     async def maintain_dkg_list(self):
@@ -97,6 +105,15 @@ class MuonSA(SA):
             nursery.start_soon(self.maintain_dkg_list)
 
 
+async def run_flask_app():
+    await app.run_task(debug=True, host=str(os.getenv('API_HOST')), port=str(os.getenv('API_PORT')))
+
+
+async def run_process(muon_sa):
+    async with trio.open_nursery() as nursery:
+        nursery.start_soon(run_flask_app)
+        nursery.start_soon(muon_sa.run_process)
+
 if __name__ == '__main__':
 
     file_path = 'logs'
@@ -113,7 +130,7 @@ if __name__ == '__main__':
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
     root_logger.addHandler(console_handler)
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.INFO)
     node_info = NodeInfo()
     load_dotenv()
     secret = bytes.fromhex(os.getenv('PRIVATE_KEY'))
@@ -128,15 +145,6 @@ if __name__ == '__main__':
     }
     muon_sa = MuonSA(APPS_LIST_URL,
                      address, os.getenv('PRIVATE_KEY'), node_info)
-
-    # TODO: Use WSGI or uvicorn
     app.config['SA'] = muon_sa
-    flask_process = Process(target=lambda: app.run(
-        debug=True, host=str(os.getenv('API_HOST')), port=str(os.getenv('API_PORT')), use_reloader=False))
-    sa_process = Process(target=lambda: trio.run(muon_sa.run_process))
-
-    flask_process.start()
-    sa_process.start()
-
-    flask_process.join()
-    sa_process.join()
+    # TODO: Use WSGI or uvicorn
+    trio.run(run_process, muon_sa)

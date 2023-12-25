@@ -1,4 +1,6 @@
-SQLAlchemy==2.0.23
-Flask==3.0.0
-python-dotenv==1.0.0
 -e git+https://github.com/SAYaghoubnejad/pyfrost.git@refactor#egg=pyfrost
+python-dotenv==1.0.0
+quart-trio
+
+
+
