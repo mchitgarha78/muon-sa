@@ -1,4 +1,0 @@
-[submodule "pyfrost"]
-	path = pyfrost
-	url = https://github.com/SAYaghoubnejad/pyfrost.git
-	branch = refactor
