@@ -24,7 +24,7 @@ After these installations, configure `.env` file. The file `.env.example` has th
 
 Change your settings in the `.env` file:
 ```
-PRIVATE_KEY=<your-registry-private>
+PRIVATE_KEY=<your-sa-private>
 PORT=5039
 HOST=0.0.0.0
 API_HOST=0.0.0.0
