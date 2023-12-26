@@ -24,3 +24,4 @@ logs
 sa.db
 dns.db
 nodes.json
+config.py
