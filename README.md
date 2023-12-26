@@ -31,6 +31,15 @@ API_HOST=0.0.0.0
 API_PORT=5040
 ```
 
+You also need to configure your `nodes.json` file in `abstract` directory:
+
+```bash
+(venv) $ cp ./abstract/nodes.json.example ./abstract/nodes.json
+```
+
+Get your nodes data and add it to `nodes.json` file. 
+
+
 
 ## How to Run
 
