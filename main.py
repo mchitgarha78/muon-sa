@@ -9,7 +9,6 @@ from libp2p.crypto.secp256k1 import create_new_key_pair
 from libp2p.peer.id import ID as PeerID
 from pyfrost.frost import pub_decompress, pub_to_addr
 from typing import Dict
-from config import APPS_LIST_URL
 import trio
 import uuid
 import hashlib
@@ -36,7 +35,7 @@ async def request_sign():
         if None in [app_name, method_name, req_id, params, result]:
             return jsonify({'error': 'Invalid request format'}), 400
         dkg_ids = [key for key, value in muon_sa.dkg_list.items()
-                if value['app_name'] == app_name]
+                   if value['app_name'] == app_name]
         if len(dkg_ids) == 0:
             return jsonify({'error': 'App not found on the apps list.'}), 400
         dkg_id = dkg_ids[0]
@@ -89,7 +88,7 @@ async def request_sign():
                 'timestamp': ended_time,
                 'signature': "0x" + hex(response_data['signature_data'][0]['signature_data']['signature'])[2:]
             }],
-            
+
         }
         return jsonify(response), 200
     except Exception as e:
@@ -108,7 +107,7 @@ class MuonSA(SA):
         self.nonces: Dict[str, list[Dict]] = {}
         self.node_evaluator = NodeEvaluator()
         self.dkg_list: Dict = {}
-        
+
     async def maintain_nonces(self, min_number_of_nonces: int = 10, sleep_time: int = 10):
         while True:
             peer_ids = self.node_info.get_all_nodes()
@@ -187,7 +186,7 @@ if __name__ == '__main__':
         'ip': str(os.getenv('HOST')),
         'port': str(os.getenv('PORT'))
     }
-    muon_sa = MuonSA(APPS_LIST_URL,
+    muon_sa = MuonSA(os.getenv('APPS_LIST_URL'),
                      address, os.getenv('PRIVATE_KEY'), node_info)
     app.config['SA'] = muon_sa
     # TODO: Use WSGI or uvicorn

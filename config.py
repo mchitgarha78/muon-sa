@@ -8,4 +8,3 @@ PENALTY_LIST = {
 
 REMOVE_THRESHOLD = -50
 
-APPS_LIST_URL = 'http://89.106.206.214/apps.json'

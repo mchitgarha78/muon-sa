@@ -29,6 +29,7 @@ PORT=5039
 HOST=0.0.0.0
 API_HOST=0.0.0.0
 API_PORT=5040
+APPS_LIST_URL=<your-apps-url>
 ```
 
 You also need to configure your `nodes.json` file in `abstract` directory:
