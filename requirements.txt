@@ -1,6 +1,6 @@
 -e git+https://github.com/SAYaghoubnejad/pyfrost.git@refactor#egg=pyfrost
 python-dotenv==1.0.0
-quart-trio
+#quart-trio
 
 
 

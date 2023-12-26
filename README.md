@@ -12,17 +12,34 @@ $ cd muon-sa
 $ virtualenv -p python3.10 venv
 $ source venv/bin/activate
 (venv) $ pip install -r requirements.txt
+(venv) $ pip install quart-trio
 ```
 
 **Note:** The required Python version is `3.10`.
+
+After these installations, configure `.env` file. The file `.env.example` has the example of thie environment variables. So you can type the following command:
+```bash
+(venv) $ cp .env.example .env
+```
+
+Change your settings in the `.env` file:
+```
+PRIVATE_KEY=<your-registry-private>
+PORT=5039
+HOST=0.0.0.0
+API_HOST=0.0.0.0
+API_PORT=5040
+```
 
 
 ## How to Run
 
 Type the following command to run Muon node:
 
+
+
 ```bash
-(venv) $ python main.py [total node number] [resgistry apps data url]
+(venv) $ python main.py
 ```
 
 If you want to get signature from the `simple_oracle`, you can test it using the following CURL command:
