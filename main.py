@@ -60,11 +60,11 @@ async def request_sign():
         public_key_hex = muon_sa._key_pair.public_key.serialize().hex()
         ethereum_address = Web3.toChecksumAddress('0x' + public_key_hex[-40:])
         response = {'success': True}
-
+    
         # TODO: Remove pub_to_code , ...
         response['result'] = {
             'confirmed': True,
-            'reqId': response_data['request_object'].request_id,
+            'reqId': response_data['request_id'],
             'app': app_name,
             'appId': appId,
             'method': method_name,
@@ -134,6 +134,7 @@ class MuonSA(SA):
 
                 for id, data in new_data.items():
                     self.dkg_list[id] = data
+                # TODO: Revert to 5 mins after testing.
                 await trio.sleep(5)  # wait for 5 mins
             except Exception as e:
                 logging.error(
