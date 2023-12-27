@@ -49,44 +49,21 @@ async def request_sign():
 
         dkg_key = muon_sa.dkg_list[dkg_id].copy()
         dkg_key['dkg_id'] = dkg_id
-
-        # TODO: Handle if total result is FAILED.
-        new_party = muon_sa.node_evaluator.get_new_party(
-            muon_sa.dkg_list[dkg_id]['party'], muon_sa.dkg_list[dkg_id]['threshold'])
         started_time = int(time.time())
         response_data = await muon_sa.request_signature(dkg_key, nonces_dict,
-                                                        data, new_party)
+                                                        data, muon_sa.dkg_list[dkg_id]['party'])
+        # TODO: Add response output to request signature: muon_sa.node_evaluator.evaluate_responses(response_data)
         ended_time = int(time.time())
-
-        success_result = True
-        signatures = []
-        if response_data['result'] == 'FAILED':
-            muon_sa.node_evaluator.evaluate_responses(
-                response_data['signatures'])
-            success_result = False
-        elif response_data['signature_data'].get('error'):
-            success_result = False
-            result = response_data['signature_data'][0]
-        else:
-            signatures.append(
-                {
-                    'owner': pub_to_addr(pub_decompress(response_data['public_key'])),
-                    'ownerPubKey': response_data['public_key'],
-                    'timestamp': ended_time,
-                    'signature': "0x" + hex(response_data['signatures_data'][0]['signature_data']['signature'])[2:]
-                }
-            )
-        result = next(iter(response_data.get('signature_data', [])), None)
-
         hash_obj = hashlib.sha3_256(f'{app_name}.py'.encode())
         hash_hex = hash_obj.hexdigest()
         appId = str(int(hash_hex, 16))
         public_key_hex = muon_sa._key_pair.public_key.serialize().hex()
         ethereum_address = Web3.toChecksumAddress('0x' + public_key_hex[-40:])
-        response = {'success': success_result}
+        response = {'success': True}
+    
         # TODO: Remove pub_to_code , ...
         response['result'] = {
-            'confirmed': success_result,
+            'confirmed': True,
             'reqId': response_data['request_id'],
             'app': app_name,
             'appId': appId,
@@ -100,12 +77,17 @@ async def request_sign():
                 'result': result,
                 'signParams': sign_params,
                 'init': {
-                    'nonceAddress': response_data.get('nonce')
+                    'nonceAddress': response_data['nonce']
                 },
             },
             'startedAt': started_time,
             'confirmedAt': ended_time,
-            'signatures': signatures,
+            'signatures': [{
+                'owner': pub_to_addr(pub_decompress(response_data['public_key'])),
+                'ownerPubKey': response_data['public_key'],
+                'timestamp': ended_time,
+                'signature': "0x" + hex(response_data['signature_data'][0]['signature_data']['signature'])[2:]
+            }],
 
         }
         return jsonify(response), 200
