@@ -1,6 +1,6 @@
 # Muon SA
 
-This implementation represents Muon-SA (Signature Aggregator) version of [pyfrost](https://github.com/SAYaghoubnejad/pyfrost) library to issue signatures.
+This implementation represents Muon-SA (Signature Aggregator) version of [pyfrost](https://github.com/SAYaghoubnejad/pyfrost) library to issue signatures. Muon-SA along the [Muon-Node](https://github.com/mchitgarha78/muon-node), the [Muon-Registry](https://github.com/mchitgarha78/muon-registry), and Muon-Apps runner ([python apps runner](https://github.com/mchitgarha78/muon-py-apps) and [js apps runner](https://github.com/mchitgarha78/muon-js-apps/tree/main)) represent the core of the Muon network to deploy and run apps and issue a distributed signature. For more insight on the Muon network, please read our [document](https://github.com/mchitgarha78/muon-node/wiki) describing the main functionalities of the muon system.
 
 ## How to Setup
 
