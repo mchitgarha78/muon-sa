@@ -32,7 +32,7 @@ async def request_sign():
         params = data.get('data', {}).get('params')
         result = data.get('data', {}).get('result')
         sign_params = data.get('data', {}).get('signParams')
-        if None in [app_name, method_name, req_id, params, result]:
+        if None in [app_name, method_name, params]:
             return jsonify({'error': 'Invalid request format'}), 400
         dkg_ids = [key for key, value in muon_sa.dkg_list.items()
                    if value['app_name'] == app_name]
@@ -53,9 +53,15 @@ async def request_sign():
         # TODO: Handle if total result is FAILED.
         new_party = muon_sa.node_evaluator.get_new_party(
             muon_sa.dkg_list[dkg_id]['party'], muon_sa.dkg_list[dkg_id]['threshold'])
+        peer_ids = muon_sa.node_info.get_all_nodes()
+        # TODO: Random selection
+        selected_nodes = {}
+        for node_id, peer_ids in peer_ids.items():
+            if node_id in new_party:
+                selected_nodes[node_id] = peer_ids[0]
         started_time = int(time.time())
         response_data = await muon_sa.request_signature(dkg_key, nonces_dict,
-                                                        data, new_party)
+                                                        data, selected_nodes)
         ended_time = int(time.time())
 
         success_result = True
@@ -64,9 +70,10 @@ async def request_sign():
             muon_sa.node_evaluator.evaluate_responses(
                 response_data['signatures'])
             success_result = False
+            result = [signature for signature in response_data['signatures'].values()][0]
         elif response_data['signature_data'].get('error'):
             success_result = False
-            result = response_data['signature_data'][0]
+            
         else:
             signatures.append(
                 {
@@ -76,7 +83,9 @@ async def request_sign():
                     'signature': "0x" + hex(response_data['signatures_data'][0]['signature_data']['signature'])[2:]
                 }
             )
-        result = next(iter(response_data.get('signature_data', [])), None)
+        print ('response data:', response_data)
+        # if response_data['result'] == 'FAILED':
+        # result = next(iter(response_data.get('signatures_data', [])), None)
 
         hash_obj = hashlib.sha3_256(f'{app_name}.py'.encode())
         hash_hex = hash_obj.hexdigest()
